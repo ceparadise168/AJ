@@ -9,9 +9,6 @@ use GuzzleHttp\Client;
 
 class UpdateZodiac extends Command
 {
-	
-	
-	
     /**
 	 * The name and signature of the console command.
      *
@@ -45,7 +42,7 @@ class UpdateZodiac extends Command
 	* 
 	* @var \Datetime
 	*/
-	private $endTime;
+    private $endTime;
 		
    /**
 	* Create a new command instance.
@@ -54,7 +51,8 @@ class UpdateZodiac extends Command
 	*/
 	public function __construct()
 	{
-		parent::__construct();
+        parent::__construct();
+        $this->zodiacSignMap = ZodiacSign::$zodiacSignMap;
 	}
 
    /**
@@ -74,14 +72,12 @@ class UpdateZodiac extends Command
     {
         foreach ($this->infos as $info)
         {
-            var_dump($info);
-            $zodiacSign = ZodiacSign::Where('uri_id', $info['uri_id'])->first();
+            $zodiacSign = ZodiacSign::Where('sign_id', $info['sign_id'])->first();
 
             if (!$zodiacSign) {
                 $zodiacSign = new ZodiacSign;
-
-                $zodiacSign->uri_id = $info['uri_id'];
-                $zodiacSign->name = $info['name'][0];
+                $zodiacSign->sign_id = $info['sign_id'];
+                $zodiacSign->name = $info['name'];
             }
 
             $zodiacSign->total_rank = $info['total_rank'];
@@ -100,69 +96,62 @@ class UpdateZodiac extends Command
 	private function crawler()
 	{
         $client = $this->getClient();
-        $count = 0;
 
-        while ($count <= 11) {
+        foreach ($this->zodiacSignMap as $signId => $signName) {
             try {
                 $this->data = [];
-                $this->data['uri_id'] = $count;
+                $this->data['sign_id'] = $signId;
 
-                $response = $client->request('GET', "daily_$count.php?iAstro=$count");
+                $response = $client->request('GET', "daily_$signId.php?iAstro=$signId");
                 $content = $response->getBody()->getContents();
         
                 $crawler = new Crawler();
                 $crawler->addHtmlContent($content);
-                
+
                 $target = $crawler->filterXPath('//div[contains(@class, "TODAY_CONTENT")]')->children();
         
-
-
                 $target->each(function (Crawler $node) {
                     $node_text = $node->text();
                     $this->data[] = $node_text; 
                 });
 
                 $this->paserData($this->data);
-
-                $count++;
-            } catch (Exception $e) {  
+            } catch (Exception $e) {
                 echo 'Caught exception: ',  $e->getMessage(),'<br>';  
-            }  
+            }
         }
 	}
-    
+
     private function paserData($data)
     {
-        $map = [
+        $targetMap = [
             'total' => '整體運勢',
             'love' => '愛情運勢',
             'job' => '事業運勢',
             'money' => '財運運勢'
         ];
+        $signId = $data['sign_id'];
 
         $info = [];
-        $info['uri_id'] = $data['uri_id'];
-        //preg_match("@\W{2}座@", $data[0], $m);
+        $info['sign_id'] = $signId;
+        $info['name'] = $this->zodiacSignMap[$signId];
 
-        $signName = substr($data[0], 6, 9);
-        $info['name'] = $signName;
-
-        unset($data[0]);        
+        unset($data[0]);
           
-        foreach ($map as $key => $value) {
-            $idx = "$key" . '_rank';
-            $idxx = "$key" . '_describe';
+        foreach ($targetMap as $key => $value) {
+            $idxRank = "$key" . '_rank';
+            $idxDescribe = "$key" . '_describe';
 
-            foreach ($data as $dk => $d) {
-                preg_match("@$value(★|☆)+@", $d, $r);
+            foreach ($data as $dataKey => $dataValue) {
+                preg_match("@$value(★|☆)+@", $dataValue, $match);
 
-                if ($r && $r[0]) {                
-                    $info[$idx] = substr_count($r[0], '★');
-                    $ndk = $dk + 1;
-                    $info[$idxx] = $data[$ndk];                   
-                } 
+                if ($match && $match[0]) {
+                    $info[$idxRank] = substr_count($match[0], '★');
+                    $nextKey = $dataKey + 1;
+                    $info[$idxDescribe] = $data[$nextKey];
+                }
             }
-        } 
+        }
         $this->infos[] = $info;
     }
 
@@ -171,7 +160,7 @@ class UpdateZodiac extends Command
         if (!$this->client) {
             $this->client = new Client([
                 'base_uri' => 'http://astro.click108.com.tw/',
-                'timeout'  => 2.0,
+                'timeout'  => 5.0,
             ]);
         }
 
@@ -187,7 +176,8 @@ class UpdateZodiac extends Command
 	
     private function end()
     {
-		$this->endTime = new \Datetime;
+        $this->endTime = new \Datetime;
+
 		$costTime = $this->endTime->diff($this->startTime, true);
 		
 		$this->info('Execute time: ' . $costTime->format('%H:%I:%S'));

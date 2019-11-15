@@ -15,7 +15,7 @@ class CreateZodiacSignsTable extends Migration
     {
         Schema::create('zodiac_signs', function (Blueprint $table) {
             $table->increments('id');
-            $table->tinyInteger('uri_id');
+            $table->tinyInteger('sign_id');
             $table->string('name');
             $table->tinyInteger('total_rank');
             $table->string('total_describe');

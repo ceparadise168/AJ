@@ -22,3 +22,7 @@ Route::get('/home', 'HomeController@index')->name('home');
 // OAuth
 Route::get('login/google', 'Auth\LoginController@redirectToProvider');
 Route::get('login/google/callback', 'Auth\LoginController@handleProviderCallback');
+
+
+//Zoadic
+Route::get('zodiac/list', 'ZodiacController@list');
