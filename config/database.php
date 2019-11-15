@@ -37,6 +37,8 @@ return [
             'driver' => 'sqlite',
             'database' => env('DB_DATABASE', database_path('database.sqlite')),
             'prefix' => '',
+            'charset'   => 'utf8',
+            'collation' => 'utf8_unicode_ci',
         ],
 
         'mysql' => [
