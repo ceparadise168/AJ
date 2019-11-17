@@ -10,64 +10,64 @@ use GuzzleHttp\Client;
 class UpdateZodiac extends Command
 {
     /**
-	 * The name and signature of the console command.
+     * The name and signature of the console command.
      *
      * @var string
      */
-	protected $signature = 'command:update-zodiac';
-	
-   /**
-	* The console command description.
-    *
-	* @var string
-	*/
-	protected $description = 'Command description';
-	
-   /**
-    * Start Time
-	* 
-	* @var \Datetime
-	*/
-	private $stratTime;
-    
+    protected $signature = 'command:update-zodiac';
+
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Command description';
+
+    /**
+     * Start Time
+     *
+     * @var \Datetime
+     */
+    private $stratTime;
+
     /**
      *  Client
-     * 
+     *
      * @var GuzzleHttp\Client;
      */
-	private $client;
-	
-   /**
-	* Start Time
-	* 
-	* @var \Datetime
-	*/
+    private $client;
+
+    /**
+     * Start Time
+     *
+     * @var \Datetime
+     */
     private $endTime;
-		
-   /**
-	* Create a new command instance.
-	*
-	* @return void
-	*/
-	public function __construct()
-	{
+
+    /**
+     * Create a new command instance.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
         parent::__construct();
         $this->zodiacSignMap = ZodiacSign::$zodiacSignMap;
-	}
+    }
 
-   /**
-	* Execute the console command.
-	*
-	* @return mixed
-	*/
-	public function handle()
-	{
-		$this->start();
+    /**
+     * Execute the console command.
+     *
+     * @return mixed
+     */
+    public function handle()
+    {
+        $this->start();
         $this->crawler();
         $this->update();
-		$this->end();
-	}
-    
+        $this->end();
+    }
+
     private function update()
     {
         foreach ($this->infos as $info)
@@ -93,8 +93,8 @@ class UpdateZodiac extends Command
         }
     }
 
-	private function crawler()
-	{
+    private function crawler()
+    {
         $client = $this->getClient();
 
         foreach ($this->zodiacSignMap as $signId => $signName) {
@@ -104,23 +104,23 @@ class UpdateZodiac extends Command
 
                 $response = $client->request('GET', "daily_$signId.php?iAstro=$signId");
                 $content = $response->getBody()->getContents();
-        
+
                 $crawler = new Crawler();
                 $crawler->addHtmlContent($content);
 
                 $target = $crawler->filterXPath('//div[contains(@class, "TODAY_CONTENT")]')->children();
-        
+
                 $target->each(function (Crawler $node) {
                     $node_text = $node->text();
-                    $this->data[] = $node_text; 
+                    $this->data[] = $node_text;
                 });
 
                 $this->paserData($this->data);
             } catch (Exception $e) {
-                echo 'Caught exception: ',  $e->getMessage(),'<br>';  
+                echo 'Caught exception: ',  $e->getMessage(),'<br>';
             }
         }
-	}
+    }
 
     private function paserData($data)
     {
@@ -137,7 +137,7 @@ class UpdateZodiac extends Command
         $info['name'] = $this->zodiacSignMap[$signId];
 
         unset($data[0]);
-          
+
         foreach ($targetMap as $key => $value) {
             $idxRank = "$key" . '_rank';
             $idxDescribe = "$key" . '_describe';
@@ -167,19 +167,19 @@ class UpdateZodiac extends Command
         return $this->client;
     }
 
-	private function start() 
-	{
-		$this->startTime = new \DateTime;
-		
-		$this->info('Start Update ...');
-	}
-	
+    private function start()
+    {
+        $this->startTime = new \DateTime;
+
+        $this->info('Start Update ...');
+    }
+
     private function end()
     {
         $this->endTime = new \Datetime;
 
-		$costTime = $this->endTime->diff($this->startTime, true);
-		
-		$this->info('Execute time: ' . $costTime->format('%H:%I:%S'));
-	}
+        $costTime = $this->endTime->diff($this->startTime, true);
+
+        $this->info('Execute time: ' . $costTime->format('%H:%I:%S'));
+    }
 }
